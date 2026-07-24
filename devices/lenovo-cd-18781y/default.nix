@@ -101,5 +101,27 @@ in
       CC_OPTIMIZE_FOR_PERFORMANCE = no;
       CC_OPTIMIZE_FOR_SIZE = yes;
     })
+    # mobile-nixos requires these networking/netfilter options built-in (=y);
+    # the msm8953 defconfig ships them as modules (=m). Force =y. (Not
+    # hardware-specific — standard NixOS networking requirements.)
+    (helpers: with helpers; {
+      BRIDGE = yes;
+      BRIDGE_NETFILTER = yes;
+      IP6_NF_IPTABLES = yes;
+      IP6_NF_RAW = yes;
+      NETFILTER_XT_MATCH_HASHLIMIT = yes;
+      NETFILTER_XT_MATCH_PHYSDEV = yes;
+      NETFILTER_XT_MATCH_SOCKET = yes;
+      NFT_BRIDGE_META = yes;
+      NFT_BRIDGE_REJECT = yes;
+      NFT_REJECT = yes;
+      NFT_REJECT_IPV4 = yes;
+      NFT_REJECT_IPV6 = yes;
+      NFT_REJECT_NETDEV = yes;
+      NFT_SOCKET = yes;
+      NFT_TPROXY = yes;
+      NF_TABLES_BRIDGE = yes;
+      NF_TPROXY_IPV6 = yes;
+    })
   ];
 }
