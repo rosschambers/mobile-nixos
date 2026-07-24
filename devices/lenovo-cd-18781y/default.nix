@@ -57,8 +57,10 @@ in
   };
 
   # linux-firmware + wireless-regdb also needed at configuration.nix level.
-  # (potter shipped a firmware/ callPackage; we start without it — enable when
-  # we know which redistributable blobs this device needs. See Task 4.)
+  # WiFi/BT is Qualcomm WCN36xx (QCA9379) per the in-tree DTS — needs the
+  # wcn36xx firmware blob (wlanmdsp.mbn) from linux-firmware. (potter shipped a
+  # firmware/ callPackage; we start without it — enable once we know exactly
+  # which blobs boot needs. See Task 4.)
   mobile.device.enableFirmware = false;
 
   mobile.system.android.device_name = "lenovo-cd-18781y";

@@ -3,15 +3,22 @@
 , ...
 }:
 
+# msm8953-mainline/linux, branch 6.12/main — this branch carries the in-tree
+# device tree `arch/arm64/boot/dts/qcom/apq8053-lenovo-cd-18781y.dts`
+# (kaechele's PR #221 "Add Lenovo ThinkSmart View" landed here), plus the
+# HX83100A / FT8201 touch + panel support. So the kernel DTS is NOT authored by
+# us — it ships in this tree. Config is seeded from the tree's msm8953.config +
+# defconfig; mobile-nixos's hardware-qualcomm structuredConfig fills SoC basics.
+
 mobile-nixos.kernel-builder {
-  version = "5.16.0";
+  version = "6.12.0";
   configfile = ./config.aarch64;
 
   src = fetchFromGitHub {
     owner = "msm8953-mainline";
     repo = "linux";
-    rev = "c6e1854c059c7db13fa0299194f2a55137e29900";  #  branch msm8953-5.16
-    sha256 = "sha256-mWd6FsGCPzC2DTQ23WxgItsq5gHdoPMXEMOhH5C3p2g=";
+    rev = "d9eabbae3edea6adb08e74c30059aa0933afaae7";  # branch 6.12/main @ 2026-07-24
+    sha256 = "sha256-6WD0G2H++6EVlaSf9cXvGOCVGWUzmWxm4Xlnfu6+p2Q=";
   };
 
   isModular = true;
