@@ -1,6 +1,6 @@
 { mobile-nixos
 , fetchFromGitHub
-, python3
+, buildPackages
 , ...
 }:
 
@@ -28,5 +28,7 @@ mobile-nixos.kernel-builder {
   # registers/gen_header.py, which imports `lxml` (for schema validation).
   # Without python3+lxml the msm-drm build fails with Error 127. We KEEP the
   # msm display driver (this device needs a screen), so provide the codegen tool.
-  nativeBuildInputs = [ (python3.withPackages (ps: [ ps.lxml ])) ];
+  # MUST be buildPackages (native x86_64) — a cross-built aarch64 python cannot
+  # run on the build host ("Exec format error").
+  nativeBuildInputs = [ (buildPackages.python3.withPackages (ps: [ ps.lxml ])) ];
 }
