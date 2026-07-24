@@ -123,5 +123,37 @@ in
       NF_TABLES_BRIDGE = yes;
       NF_TPROXY_IPV6 = yes;
     })
+    # Lean-down: the seed config came from arm64 defconfig, which pulls in
+    # hundreds of drivers for other SoCs/vendors (nouveau, iwlwifi, mlx5,
+    # mediatek, ...) — ~8000 objects and driver-compile failures we don't care
+    # about. Disable the big UNUSED families only. We KEEP DRM_MSM (this device
+    # needs a display for the dashboard + voice satellite); the msm-drm
+    # build-time codegen (gen_header.py) is satisfied by adding python3 to the
+    # kernel build inputs (see kernel/default.nix), NOT by disabling the driver.
+    (helpers: with helpers; {
+      # Other-vendor / other-SoC GPUs (we use msm/adreno — keep DRM_MSM ON)
+      DRM_NOUVEAU = no;
+      DRM_AMDGPU = no;
+      DRM_I915 = no;
+      DRM_RADEON = no;
+      # Wireless we don't use (device is wcn36xx)
+      WLAN_VENDOR_INTEL = no;
+      WLAN_VENDOR_MEDIATEK = no;
+      WLAN_VENDOR_RALINK = no;
+      WLAN_VENDOR_REALTEK = no;
+      WLAN_VENDOR_MARVELL = no;
+      WLAN_VENDOR_BROADCOM = no;
+      # Other-vendor ethernet (this is a wifi-only device)
+      NET_VENDOR_MELLANOX = no;
+      NET_VENDOR_INTEL = no;
+      NET_VENDOR_BROADCOM = no;
+      NET_VENDOR_FREESCALE = no;
+      NET_VENDOR_STMICRO = no;
+      # Other ARM platforms' pinctrl/clk we don't need
+      ARCH_MEDIATEK = no;
+      ARCH_ROCKCHIP = no;
+      ARCH_TEGRA = no;
+      ARCH_EXYNOS = no;
+    })
   ];
 }

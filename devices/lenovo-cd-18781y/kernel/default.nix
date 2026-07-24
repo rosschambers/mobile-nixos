@@ -1,5 +1,6 @@
 { mobile-nixos
 , fetchFromGitHub
+, python3
 , ...
 }:
 
@@ -22,4 +23,10 @@ mobile-nixos.kernel-builder {
   };
 
   isModular = true;
+
+  # drivers/gpu/drm/msm generates register headers at build time via
+  # registers/gen_header.py, which imports `lxml` (for schema validation).
+  # Without python3+lxml the msm-drm build fails with Error 127. We KEEP the
+  # msm display driver (this device needs a screen), so provide the codegen tool.
+  nativeBuildInputs = [ (python3.withPackages (ps: [ ps.lxml ])) ];
 }
