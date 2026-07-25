@@ -115,6 +115,13 @@ in
   # Revert once we've read the error and it boots.
   mobile.boot.stage-1.fail.reboot = false;
 
+  # DEBUG: disable the LVGL splash/progress GUI. It COVERS the console, hiding
+  # the stage-1 task log — we could only see "Mobile NixOS" + a stuck empty bar.
+  # With the GUI off, stage-1 logs print as plain text on the simplefb console,
+  # showing exactly which task runs/hangs (e.g. waiting for the rootfs device).
+  # Re-enable once boot works.
+  mobile.boot.stage-1.gui.enable = false;
+
   # Our boot partition is 32 MB (0x1f80000), roomier than potter's 16 MB, so
   # gzip is fine; keep xz to be safe on size.
   mobile.boot.stage-1.compression = lib.mkDefault "xz";
@@ -150,7 +157,12 @@ in
     #   go blank when it loaded). Lets the boot log / panic stay on the panel.
     # - panic=0: on a kernel panic, halt instead of rebooting, so the trace freezes
     #   on screen to read/photograph instead of vanishing in a reboot loop.
-    "modprobe.blacklist=msm"
+    # hci_uart/btqca: BT is modular and NOT in the initrd, yet hci0 firmware-retry
+    # errors flooded the console — proof those modules loaded from the REAL rootfs,
+    # i.e. stage-1 mounted it and stage-2 udev was running. The spam (missing
+    # qca/rampatch firmware, an M4 item) drowns out the real boot log; silence it
+    # until we wire BT firmware.
+    "modprobe.blacklist=msm,hci_uart,btqca"
     "panic=0"
     # - clk_ignore_unused / pd_ignore_unused: with msm blacklisted, NOTHING claims
     #   the MDSS display clocks/power-domains that lk2nd left running for the
