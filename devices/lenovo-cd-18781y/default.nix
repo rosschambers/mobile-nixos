@@ -225,6 +225,11 @@ in
     (helpers: with helpers; {
       DRM_FBDEV_EMULATION = yes;
       FB = yes;
+      # FB_SIMPLE: bind the simple-framebuffer node (injected into the DTS via the
+      # kernel postPatch) to lk2nd's continuous-splash framebuffer at 0x90001000,
+      # giving on-screen kernel output from EARLY boot — before the msm DRM module
+      # loads. This is our primary debug channel.
+      FB_SIMPLE = yes;
       FRAMEBUFFER_CONSOLE = yes;
       FRAMEBUFFER_CONSOLE_DETECT_PRIMARY = yes;
       VT = yes;

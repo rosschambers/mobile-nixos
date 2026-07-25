@@ -45,6 +45,28 @@ mobile-nixos.kernel-builder {
       echo ":: ramoops node injected:"
       grep -A9 "ramoops@bfe00000" "$dts" || true
     fi
+
+    # Inject a simple-framebuffer so the kernel can draw EARLY boot messages (and
+    # a panic trace) to the panel using lk2nd's continuous-splash framebuffer,
+    # BEFORE the msm DRM module loads. This is the pmOS-recommended early-console
+    # method for Qualcomm mainline bring-up (wiki: MSM8996/SM7150 Mainlining) and
+    # our most reliable debug channel (UART pads aren't accessible; lk2nd's
+    # ramoops reader is broken for our address, upstream lk2nd#431).
+    # Params from kaechele's DTS: cont_splash_mem @ 0x90001000, size 800*1280*3 →
+    # 800x1280, 24bpp (3 bytes/px), stride 800*3=2400, format r8g8b8.
+    # The node goes under /chosen (created if absent) with simplefb-<format>
+    # compatible so FB_SIMPLE binds it; fbcon then prints on-screen from early boot.
+    if grep -q "simple-framebuffer" "$dts"; then
+      echo ":: simple-framebuffer already present in $dts"
+    else
+      echo ":: Injecting simple-framebuffer + chosen node into $dts"
+      # Insert a chosen node with the framebuffer right after the root "model =" line.
+      ${buildPackages.gnused}/bin/sed -i \
+        's|\(\tmodel = "Lenovo ThinkView Smart";\)|\1\n\n\tchosen {\n\t\t#address-cells = <2>;\n\t\t#size-cells = <2>;\n\t\tranges;\n\n\t\tframebuffer@90001000 {\n\t\t\tcompatible = "simple-framebuffer";\n\t\t\treg = <0x0 0x90001000 0x0 (800 * 1280 * 3)>;\n\t\t\twidth = <800>;\n\t\t\theight = <1280>;\n\t\t\tstride = <(800 * 3)>;\n\t\t\tformat = "r8g8b8";\n\t\t};\n\t};|' \
+        "$dts"
+      echo ":: simple-framebuffer injected:"
+      grep -A12 "chosen {" "$dts" | head -16 || true
+    fi
   '';
 
   # drivers/gpu/drm/msm generates register headers at build time via
