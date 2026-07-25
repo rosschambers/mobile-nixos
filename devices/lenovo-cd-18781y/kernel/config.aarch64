@@ -1911,3 +1911,13 @@ CONFIG_BRIDGE=y
 CONFIG_BRIDGE_IGMP_SNOOPING=y
 CONFIG_BRIDGE_VLAN_FILTERING=y
 CONFIG_BACKLIGHT_CLASS_DEVICE=y
+
+# ASLR entropy — NixOS's config/sysctl.nix greps the kernel configfile for
+# CONFIG_ARCH_MMAP_RND_BITS_MAX (and the compat variant) to generate
+# 55-nixos-aslr-entropy.conf; without them the rootfs build dies with
+# "Unable to determine mmap_rnd_bits_max". These are arch-derived on ARM64
+# (4K pages, 48-bit VA): MAX resolves to 18, compat (aarch32) to 16 — matching
+# the values the built kernel produced. They must be present in this SOURCE
+# fragment because the generator reads the configfile, not the built .config.
+CONFIG_ARCH_MMAP_RND_BITS_MAX=18
+CONFIG_ARCH_MMAP_RND_COMPAT_BITS_MAX=16

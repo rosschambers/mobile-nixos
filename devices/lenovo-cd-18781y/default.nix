@@ -19,6 +19,22 @@ let
   ;
 in
 {
+  # Cross-compiling systemd (x86_64 -> aarch64) fails building its BPF programs:
+  # clang -target bpf can't find linux/types.h / errno.h (a known nixpkgs cross
+  # limitation — the kernel/libc header paths don't reach the BPF-target compile,
+  # even though linux-headers is a buildInput). The BPF framework only powers
+  # optional sandboxing (RestrictFileSystems, socket-bind restrictions) that a
+  # thin voice-satellite appliance doesn't need. Disable it so the rootfs builds.
+  # systemd's mesonFlags carry -Dbpf-framework=enabled; flip it to disabled.
+  nixpkgs.overlays = [
+    (final: prev: {
+      systemd = prev.systemd.overrideAttrs (old: {
+        mesonFlags = (lib.remove "-Dbpf-framework=enabled" (old.mesonFlags or []))
+          ++ [ "-Dbpf-framework=disabled" ];
+      });
+    })
+  ];
+
   mobile.device.name = "lenovo-cd-18781y";
   mobile.device.identity = {
     name = "ThinkSmart View";
