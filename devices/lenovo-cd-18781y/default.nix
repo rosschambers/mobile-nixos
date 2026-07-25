@@ -68,7 +68,10 @@ in
       # Panel modules for the two possible panels.
       "panel-lenovo-cd-18781y-ft8201"
       "panel-lenovo-cd-18781y-hx83100a"
-      "msm"                     # DRM
+      # Load the msm DRM driver in the initrd (stage-1) so the panel + framebuffer
+      # console come up as early as possible — fbcon then draws kernel messages on
+      # the screen. DRM_MSM is =m (kconfig forces it via QCOM_LLCC=m).
+      "msm"                     # DRM (module)
     ];
   };
 
@@ -205,6 +208,27 @@ in
       PSTORE = yes;
       PSTORE_RAM = yes;
       PSTORE_CONSOLE = yes;
+    })
+    # ON-SCREEN CONSOLE (our most reliable debug channel — the UART pads need
+    # soldering and lk2nd's ramoops reader is broken for our address, upstream
+    # issue msm8916-mainline/lk2nd#431). Observed: Lenovo logo → black screen with
+    # the BACKLIGHT ON. So the panel powers up but no console text is drawn. The
+    # kernel lacked a framebuffer console, so console=tty0 had nowhere to draw.
+    # Wire fbcon so kernel messages render on the panel once DRM_MSM loads:
+    # - DRM_FBDEV_EMULATION: DRM exposes /dev/fb0 for the console to draw on.
+    # - FRAMEBUFFER_CONSOLE (+ DETECT_PRIMARY): fbcon binds to that framebuffer.
+    # NOTE: we do NOT force DRM_MSM=y — kconfig drags it back to =m via a =m
+    # dependency (QCOM_LLCC), failing validation. As a module it loads a few
+    # seconds into boot; fbcon then activates and late kernel messages + any
+    # userspace output appear on-screen. Early-boot messages before the module
+    # loads won't show, but a panic at/after userspace will.
+    (helpers: with helpers; {
+      DRM_FBDEV_EMULATION = yes;
+      FB = yes;
+      FRAMEBUFFER_CONSOLE = yes;
+      FRAMEBUFFER_CONSOLE_DETECT_PRIMARY = yes;
+      VT = yes;
+      VT_CONSOLE = yes;
     })
     # Audio + WiFi are already carried by the msm8953.config fragment in the base
     # config.aarch64 (SND_SOC_MSM8916_*, WCN36XX=m, WLAN_VENDOR_ATH=y). We do NOT
