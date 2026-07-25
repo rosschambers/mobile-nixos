@@ -96,6 +96,20 @@ in
   mobile.system.type = "android";
   mobile.system.android.flashingMethod = "lk2nd";
 
+  # Serial + on-screen console for M1/M2 debugging. The console UART is uart_0
+  # (serial@78af000, "uart_console_active" pinctrl, TX on GPIO5 pins A8/B8) →
+  # ttyMSM0 @ 115200. earlycon gets output as early as possible. We also keep
+  # tty0 (framebuffer) so anything the panel shows is a console too. NOTE: the
+  # physical UART is on GPIO testpoints, not the USB-C port (uart_5 there is the
+  # QCA9379 Bluetooth). If we can't reach the pads, PSTORE/ramoops (enabled in
+  # structuredConfig below) preserves the last crash log across a reboot.
+  boot.kernelParams = [
+    "earlycon"
+    "console=ttyMSM0,115200n8"
+    "console=tty0"
+    "loglevel=7"
+  ];
+
   mobile.kernel.structuredConfig = [
     (helpers: with helpers; {
       CC_OPTIMIZE_FOR_PERFORMANCE = no;
@@ -154,6 +168,39 @@ in
       ARCH_ROCKCHIP = no;
       ARCH_TEGRA = no;
       ARCH_EXYNOS = no;
+    })
+    # Debugging essentials for first boot (M1/M2):
+    # - msm serial driver built-in so earlycon + console=ttyMSM0 work from the
+    #   very start (a module would be too late for early boot).
+    # - PSTORE/ramoops: preserve the last kernel log across a reboot, so even if
+    #   we can't physically reach the UART pads we can read WHY it died after a
+    #   power-cycle back into a working state.
+    (helpers: with helpers; {
+      SERIAL_MSM = yes;
+      SERIAL_MSM_CONSOLE = yes;
+      SERIAL_EARLYCON = yes;
+      PSTORE = yes;
+      PSTORE_RAM = yes;
+      PSTORE_CONSOLE = yes;
+    })
+    # Audio (the voice-satellite's whole point): MSM8953/APQ8016 ASoC stack +
+    # the WCD analog/digital codecs + Q6 DSP. Keep as modules (matches the
+    # msm8953.config fragment) — loaded at runtime, not needed for early boot.
+    (helpers: with helpers; {
+      SND = yes;
+      SND_SOC = module;
+      SND_SOC_QCOM = module;
+      SND_SOC_MSM8916_QDSP6 = module;
+      SND_SOC_MSM8916_WCD_ANALOG = module;
+      SND_SOC_MSM8916_WCD_DIGITAL = module;
+      SND_SOC_APQ8016_SBC = module;
+    })
+    # WiFi: wcn36xx (QCA9379). The driver is in; it needs the wlanmdsp.mbn
+    # firmware blob at runtime (wired via mobile.device.firmware / linux-firmware
+    # once we reach M4). Build the driver as a module.
+    (helpers: with helpers; {
+      WCN36XX = module;
+      WLAN_VENDOR_ATH = yes;
     })
   ];
 }
