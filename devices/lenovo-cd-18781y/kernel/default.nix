@@ -60,9 +60,12 @@ mobile-nixos.kernel-builder {
       echo ":: simple-framebuffer already present in $dts"
     else
       echo ":: Injecting simple-framebuffer + chosen node into $dts"
-      # Insert a chosen node with the framebuffer right after the root "model =" line.
+      # Insert the chosen node BEFORE the first root subnode (aliases). DTS requires
+      # all properties (compatible, qcom,msm-id, ...) to precede subnodes, so we
+      # cannot put a subnode right after "model ="; anchoring on "aliases {" places
+      # chosen after every root property.
       ${buildPackages.gnused}/bin/sed -i \
-        's|\(\tmodel = "Lenovo ThinkView Smart";\)|\1\n\n\tchosen {\n\t\t#address-cells = <2>;\n\t\t#size-cells = <2>;\n\t\tranges;\n\n\t\tframebuffer@90001000 {\n\t\t\tcompatible = "simple-framebuffer";\n\t\t\treg = <0x0 0x90001000 0x0 (800 * 1280 * 3)>;\n\t\t\twidth = <800>;\n\t\t\theight = <1280>;\n\t\t\tstride = <(800 * 3)>;\n\t\t\tformat = "r8g8b8";\n\t\t};\n\t};|' \
+        's|\(\taliases {\)|chosen {\n\t\t#address-cells = <2>;\n\t\t#size-cells = <2>;\n\t\tranges;\n\n\t\tframebuffer@90001000 {\n\t\t\tcompatible = "simple-framebuffer";\n\t\t\treg = <0x0 0x90001000 0x0 (800 * 1280 * 3)>;\n\t\t\twidth = <800>;\n\t\t\theight = <1280>;\n\t\t\tstride = <(800 * 3)>;\n\t\t\tformat = "r8g8b8";\n\t\t};\n\t};\n\n\t\1|' \
         "$dts"
       echo ":: simple-framebuffer injected:"
       grep -A12 "chosen {" "$dts" | head -16 || true
