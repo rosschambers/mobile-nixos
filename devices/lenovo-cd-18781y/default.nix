@@ -183,24 +183,14 @@ in
       PSTORE_RAM = yes;
       PSTORE_CONSOLE = yes;
     })
-    # Audio (the voice-satellite's whole point): MSM8953/APQ8016 ASoC stack +
-    # the WCD analog/digital codecs + Q6 DSP. Keep as modules (matches the
-    # msm8953.config fragment) — loaded at runtime, not needed for early boot.
-    (helpers: with helpers; {
-      SND = yes;
-      SND_SOC = module;
-      SND_SOC_QCOM = module;
-      SND_SOC_MSM8916_QDSP6 = module;
-      SND_SOC_MSM8916_WCD_ANALOG = module;
-      SND_SOC_MSM8916_WCD_DIGITAL = module;
-      SND_SOC_APQ8016_SBC = module;
-    })
-    # WiFi: wcn36xx (QCA9379). The driver is in; it needs the wlanmdsp.mbn
-    # firmware blob at runtime (wired via mobile.device.firmware / linux-firmware
-    # once we reach M4). Build the driver as a module.
-    (helpers: with helpers; {
-      WCN36XX = module;
-      WLAN_VENDOR_ATH = yes;
-    })
+    # Audio + WiFi are already carried by the msm8953.config fragment in the base
+    # config.aarch64 (SND_SOC_MSM8916_*, WCN36XX=m, WLAN_VENDOR_ATH=y). We do NOT
+    # re-declare them here: mobile-nixos's validator requires every structuredConfig
+    # key to also appear literally in the base config, and some of these audio
+    # sub-options get pruned by kconfig dependency resolution (e.g.
+    # SND_SOC_MSM8916_QDSP6) — declaring them then trips "expected =m but not
+    # present". They build fine from the base config; revisit only if audio/wifi
+    # are actually missing at M4. WiFi still needs the wlanmdsp.mbn firmware blob
+    # wired via mobile.device.firmware at M4.
   ];
 }
