@@ -81,6 +81,13 @@ in
 
   mobile.system.android.device_name = "lenovo-cd-18781y";
   mobile.system.android = {
+    # The rootfs (1.77 GB) does NOT fit the 1.5 GB `system` partition, so we
+    # install it to `userdata` (~4 GB) instead. Stage-1 mounts root by filesystem
+    # label (NIXOS_SYSTEM) via /dev/disk/by-label, so it finds the rootfs wherever
+    # it physically lives — this option just tells the flash tooling/docs where to
+    # write system.img. See docs/log.md 2026-07-25 (size mismatch).
+    system_partition_destination = "userdata";
+
     # MSM8953 defaults (same as potter). Verify against our GPT in Task 7.
     bootimg.flash = {
       offset_base = "0x80000000";

@@ -24,6 +24,29 @@ mobile-nixos.kernel-builder {
 
   isModular = true;
 
+  # Inject a ramoops reserved-memory node into our device DTS so PSTORE_RAM has a
+  # region to write the kernel console/oops to. Without this the ramoops region is
+  # uninitialised (we read back only 0x55 fill from lk2nd's `oem ramoops raw`), so
+  # a crashing kernel leaves no log. Address 0xbfe00000 (size 2 MB) sits in free
+  # RAM between the reserved SoC carveouts (top is 0x95002000) and rmtfs
+  # (0xf2d00000), and covers the region lk2nd itself reports (console @ 0xbfec0000)
+  # so lk2nd's `oem ramoops console` can read our kernel's log after a reboot.
+  # The device DTS's reserved-memory node uses #size-cells=2 (inherited from
+  # msm8953.dtsi), so reg is <hi lo hi lo>.
+  postPatch = ''
+    dts=arch/arm64/boot/dts/qcom/apq8053-lenovo-cd-18781y.dts
+    if grep -q "ramoops@" "$dts"; then
+      echo ":: ramoops node already present in $dts"
+    else
+      echo ":: Injecting ramoops reserved-memory node into $dts"
+      ${buildPackages.gnused}/bin/sed -i \
+        's|\(\treserved-memory {\)|\1\n\t\tramoops@bfe00000 {\n\t\t\tcompatible = "ramoops";\n\t\t\treg = <0x0 0xbfe00000 0x0 0x200000>;\n\t\t\tconsole-size = <0x100000>;\n\t\t\tpmsg-size = <0x40000>;\n\t\t\trecord-size = <0x40000>;\n\t\t\tecc-size = <16>;\n\t\t};\n|' \
+        "$dts"
+      echo ":: ramoops node injected:"
+      grep -A9 "ramoops@bfe00000" "$dts" || true
+    fi
+  '';
+
   # drivers/gpu/drm/msm generates register headers at build time via
   # registers/gen_header.py, which imports `lxml` (for schema validation).
   # Without python3+lxml the msm-drm build fails with Error 127. We KEEP the
