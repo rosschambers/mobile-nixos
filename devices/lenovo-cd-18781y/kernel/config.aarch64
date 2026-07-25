@@ -1926,3 +1926,13 @@ CONFIG_BACKLIGHT_CLASS_DEVICE=y
 # fragment because the generator reads the configfile, not the built .config.
 CONFIG_ARCH_MMAP_RND_BITS_MAX=18
 CONFIG_ARCH_MMAP_RND_COMPAT_BITS_MAX=16
+
+# Display panel power + backlight — THE two blockers that kept the panel from
+# probing (found via pmOS config diff): the panel node's vsp/vsn supplies are
+# lab_vreg/ibb_vreg (needs REGULATOR_QCOM_LABIBB) and its backlight is
+# pmi8950_wled (needs BACKLIGHT_QCOM_WLED). Without them the panel driver
+# EPROBE_DEFERs forever, the DSI component never attaches, the msm DRM device
+# never binds, and loading msm just kills the splash scanout (runtime PM gates
+# the MDSS clocks) leaving the screen permanently blank.
+CONFIG_REGULATOR_QCOM_LABIBB=y
+CONFIG_BACKLIGHT_QCOM_WLED=y
