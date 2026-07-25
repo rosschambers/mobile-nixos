@@ -60,18 +60,21 @@ in
     package = pkgs.callPackage ./kernel { };
     modular = true;
     modules = [
-      # Touchscreen controllers — the device ships one of two panels
-      # (FT8201 or HX83100A), auto-detected; include both touch drivers.
-      "focaltech_ts"            # FT8201 touch (verify module name in Task 4)
-      "himax_hx83100a"          # HX83100A touch (verify module name in Task 4)
       "qcom-pon"                # volume keys (NOTE: no physical power button)
-      # Panel modules for the two possible panels.
+      # Panel modules — the device ships one of several panels, auto-detected.
+      # All three exist in the kernel output (verified against lib/modules).
       "panel-lenovo-cd-18781y-ft8201"
       "panel-lenovo-cd-18781y-hx83100a"
-      # Load the msm DRM driver in the initrd (stage-1) so the panel + framebuffer
-      # console come up as early as possible — fbcon then draws kernel messages on
-      # the screen. DRM_MSM is =m (kconfig forces it via QCOM_LLCC=m).
-      "msm"                     # DRM (module)
+      "panel-lenovo-cd-18781y-jd9365"
+      # NOTE: no touch modules — no focaltech_ts/himax_hx83100a .ko exists in
+      # this tree (those were guessed names), and kaechele's DTS ships both
+      # touchscreen nodes status="disabled" anyway. Revisit touch at M3/M4.
+      # DEBUG: the "msm" DRM module is intentionally NOT loaded here. When it
+      # loaded, it took over the display and WIPED the simple-framebuffer console
+      # (we saw early kernel text flash then go blank). With msm blacklisted,
+      # simplefb keeps the console so the boot log / panic stays readable on the
+      # panel. Re-enable "msm" (and drop the blacklist below) once we've read where
+      # boot fails and fixed it.
     ];
   };
 
@@ -105,6 +108,13 @@ in
     ];
   };
 
+  # DEBUG: stage-1's failure handler shows the error (code/title/message) on the
+  # framebuffer then REBOOTS after fail.delay (default 10s) — that's why we saw the
+  # boot UI + spinner then blank. Disable the auto-reboot so the error screen STAYS
+  # up indefinitely and we can finally read/photograph the actual failure message.
+  # Revert once we've read the error and it boots.
+  mobile.boot.stage-1.fail.reboot = false;
+
   # Our boot partition is 32 MB (0x1f80000), roomier than potter's 16 MB, so
   # gzip is fine; keep xz to be safe on size.
   mobile.boot.stage-1.compression = lib.mkDefault "xz";
@@ -134,6 +144,23 @@ in
     "console=ttyMSM0,115200n8"
     "console=tty0"
     "loglevel=7"
+    # DEBUG (temporary, pair with the blacklisted "msm" module above):
+    # - modprobe.blacklist=msm: keep the msm DRM driver from loading so it never
+    #   takes over and wipes the simple-framebuffer console (we saw text flash then
+    #   go blank when it loaded). Lets the boot log / panic stay on the panel.
+    # - panic=0: on a kernel panic, halt instead of rebooting, so the trace freezes
+    #   on screen to read/photograph instead of vanishing in a reboot loop.
+    "modprobe.blacklist=msm"
+    "panic=0"
+    # - clk_ignore_unused / pd_ignore_unused: with msm blacklisted, NOTHING claims
+    #   the MDSS display clocks/power-domains that lk2nd left running for the
+    #   splash framebuffer — so late-init clk_disable_unused shuts them off and the
+    #   panel stops scanning out (~1s in: text flashes then screen goes dark, which
+    #   is exactly what we observed). Keep unclaimed clocks/domains ON so simplefb
+    #   keeps displaying the console for the whole boot. Standard pmOS mainline
+    #   bring-up params for exactly this situation.
+    "clk_ignore_unused"
+    "pd_ignore_unused"
   ];
 
   mobile.kernel.structuredConfig = [

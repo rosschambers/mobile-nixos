@@ -78,5 +78,17 @@ mobile-nixos.kernel-builder {
   # msm display driver (this device needs a screen), so provide the codegen tool.
   # MUST be buildPackages (native x86_64) — a cross-built aarch64 python cannot
   # run on the build host ("Exec format error").
-  nativeBuildInputs = [ (buildPackages.python3.withPackages (ps: [ ps.lxml ])) ];
+  #
+  # kmod: the kernel-builder's default nativeBuildInputs DON'T include kmod, so
+  # `make modules_install` silently skips depmod → the kernel output has NO
+  # modules.dep → makeModulesClosure's modprobe resolves ZERO modules → the
+  # stage-1 initrd ships without ANY .ko (we shipped one with an empty
+  # modules.dep and 0 modules — libcomposite missing caused the on-screen
+  # INIT_EXCEPTION EPERM at /sys/kernel/config/usb_gadget). depmod parses ELF
+  # and is arch-independent, so the build-host (x86_64) kmod handles our
+  # aarch64 modules fine.
+  nativeBuildInputs = [
+    (buildPackages.python3.withPackages (ps: [ ps.lxml ]))
+    buildPackages.kmod
+  ];
 }
