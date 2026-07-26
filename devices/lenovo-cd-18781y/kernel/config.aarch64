@@ -1728,6 +1728,16 @@ CONFIG_DEVFREQ_GOV_USERSPACE=m
 CONFIG_DEVFREQ_THERMAL=y
 CONFIG_DRM=m
 CONFIG_DRM_PANEL_MSM8953_GENERATED=y
+# DEBUG (temporary, Task 1 zap diagnosis): CONFIG_DYNAMIC_DEBUG lets us toggle
+# firmware_loader + mdt_loader + drm pr_debug()/dev_dbg() live via
+# /sys/kernel/debug/dynamic_debug/control (was off, so we couldn't see WHICH
+# firmware request returns -2). Kept minimal; DEBUG_FS + DEBUG_KERNEL already =y.
+CONFIG_DYNAMIC_DEBUG=y
+CONFIG_DYNAMIC_DEBUG_CORE=y
+# Keep the user-helper fallback available: request_firmware() (not _direct) can
+# then retry via the usermode helper. The zap uses _direct so this alone won't
+# fix it, but the earlier duplicate (=y at line 232 then "not set" here) left it
+# disabled inconsistently. Leave it disabled explicitly and grouped here.
 # CONFIG_FW_LOADER_USER_HELPER is not set
 CONFIG_INTERCONNECT_QCOM_MSM8953=y
 CONFIG_MFD_QCOM_RPM=y

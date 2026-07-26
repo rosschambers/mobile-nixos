@@ -15,6 +15,25 @@ let
       dir=$out/lib/firmware/qcom
       mkdir -p $dir
       cp ${pkgs.linux-firmware}/lib/firmware/qcom/a530* $dir
+      # Adreno 506 ZAP shader — MUST be in the STAGE-1 firmware because the msm
+      # DRM module is loaded from the initrd (stage-1 module list below), and its
+      # one-shot GPU init requests the zap via request_firmware_direct() from the
+      # INITRAMFS /lib/firmware. The rootfs copy is invisible at that point, so
+      # with the zap absent here the GPU permanently failed hw init with -2
+      # ("Unable to load a506_zap.mdt") even though the rootfs had the files —
+      # the exact failure a530 avoids by being in this package. Path must match
+      # the in-tree DTS zap-shader firmware-name:
+      #   qcom/msm8953/lenovo/cd-18781y/a506_zap.mdt
+      # The .b00 split segment is NOT required (mdt_loader reads segment 0 and
+      # the hash from within the .mdt itself; only .b02 is fetched separately) —
+      # shipped anyway for completeness. Files are the self-consistent signed
+      # stock set extracted from the golden vendor.bin backup (see the
+      # thinksmart-nixos repo docs/log.md 2026-07-26).
+      zap=$out/lib/firmware/qcom/msm8953/lenovo/cd-18781y
+      mkdir -p $zap
+      cp ${./firmware/a506_zap.mdt} $zap/a506_zap.mdt
+      cp ${./firmware/a506_zap.b00} $zap/a506_zap.b00
+      cp ${./firmware/a506_zap.b02} $zap/a506_zap.b02
     ''
   ;
 in
