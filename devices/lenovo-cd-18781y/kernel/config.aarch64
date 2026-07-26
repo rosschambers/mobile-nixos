@@ -1728,6 +1728,9 @@ CONFIG_DEVFREQ_GOV_USERSPACE=m
 CONFIG_DEVFREQ_THERMAL=y
 CONFIG_DRM=m
 CONFIG_DRM_PANEL_MSM8953_GENERATED=y
+# Speaker amp (audio, Task 2): the TAS5782M is driven by the tas5805m driver via
+# the device patch tas5805m-add-tas5782m-support.patch (see kernel postPatch).
+CONFIG_SND_SOC_TAS5805M=m
 # DEBUG (temporary, Task 1 zap diagnosis): CONFIG_DYNAMIC_DEBUG lets us toggle
 # firmware_loader + mdt_loader + drm pr_debug()/dev_dbg() live via
 # /sys/kernel/debug/dynamic_debug/control (was off, so we couldn't see WHICH

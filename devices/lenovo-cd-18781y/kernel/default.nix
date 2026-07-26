@@ -34,6 +34,21 @@ mobile-nixos.kernel-builder {
   # The device DTS's reserved-memory node uses #size-cells=2 (inherited from
   # msm8953.dtsi), so reg is <hi lo hi lo>.
   postPatch = ''
+    # TAS5782M speaker amp support (audio, Task 2): kaechele's extension of the
+    # tas5805m driver to also claim ti,tas5782m — the compatible our DTS gives the
+    # speaker amp — with its own DSP init sequence and the firmware name pattern
+    # tas5728m_dsp_%s.bin (matching the shipped vendor blob
+    # tas5728m_dsp_lenovo_cd-18781y.bin + the DTS ti,dsp-config-name). Extracted as
+    # the diff between his kernel (kaechele/msm8953-mainline-linux @156f5b09,
+    # 6.10 base) and mainline v6.10 tas5805m.c; our 6.12 file is byte-identical to
+    # the 6.10 base, so it applies cleanly. Without this NOTHING claims the amp
+    # and the speaker dai-link cannot bind. Pair: CONFIG_SND_SOC_TAS5805M=m.
+    echo ":: Applying tas5782m amp support patch"
+    patch -p1 < ${./patches/tas5805m-add-tas5782m-support.patch}
+    # The patched driver includes a new header (DSP init sequences for both the
+    # tas5805m and tas5782m variants) that ships alongside the patch.
+    cp ${./patches/tas5805m.h} sound/soc/codecs/tas5805m.h
+
     dts=arch/arm64/boot/dts/qcom/apq8053-lenovo-cd-18781y.dts
     if grep -q "ramoops@" "$dts"; then
       echo ":: ramoops node already present in $dts"
