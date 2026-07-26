@@ -70,6 +70,16 @@ mobile-nixos.kernel-builder {
       echo ":: simple-framebuffer injected:"
       grep -A12 "chosen {" "$dts" | head -16 || true
     fi
+
+    # Force the USB controller into PERIPHERAL mode. The DTS ships dr_mode="otg",
+    # but there is no extcon/role-switch/VBUS wiring on the dwc3, so dual-role
+    # never selects peripheral → no UDC registers in /sys/class/udc → the stage-1
+    # USB gadget (rndis rescue net) can't attach (observed: "usb gadget udc not
+    # here"). Hard-set peripheral so the gadget + USB rescue networking work; the
+    # port is our appliance's data/console link anyway, never a USB host.
+    ${buildPackages.gnused}/bin/sed -i \
+      's|dr_mode = "otg";|dr_mode = "peripheral";|' "$dts"
+    echo ":: dr_mode now: $(grep -o 'dr_mode = "[a-z]*"' "$dts" | head -1)"
   '';
 
   # drivers/gpu/drm/msm generates register headers at build time via

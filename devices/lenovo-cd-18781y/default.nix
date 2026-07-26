@@ -66,15 +66,17 @@ in
       "panel-lenovo-cd-18781y-ft8201"
       "panel-lenovo-cd-18781y-hx83100a"
       "panel-lenovo-cd-18781y-jd9365"
+      # The full msm display stack: with REGULATOR_QCOM_LABIBB and
+      # BACKLIGHT_QCOM_WLED now in the kernel, the panel driver can finally
+      # probe (it consumes lab/ibb + wled), the DSI component attaches, msm
+      # binds, and fbcon moves to the real DRM framebuffer with a properly
+      # driven backlight. (Leaving these drivers present WITHOUT msm bound is
+      # itself broken: the regulator framework's late cleanup powers off the
+      # "unused" panel supplies → completely dark panel, as observed.)
+      "msm"
       # NOTE: no touch modules — no focaltech_ts/himax_hx83100a .ko exists in
       # this tree (those were guessed names), and kaechele's DTS ships both
       # touchscreen nodes status="disabled" anyway. Revisit touch at M3/M4.
-      # DEBUG: the "msm" DRM module is intentionally NOT loaded here. When it
-      # loaded, it took over the display and WIPED the simple-framebuffer console
-      # (we saw early kernel text flash then go blank). With msm blacklisted,
-      # simplefb keeps the console so the boot log / panic stays readable on the
-      # panel. Re-enable "msm" (and drop the blacklist below) once we've read where
-      # boot fails and fixed it.
     ];
   };
 
@@ -162,7 +164,7 @@ in
     # i.e. stage-1 mounted it and stage-2 udev was running. The spam (missing
     # qca/rampatch firmware, an M4 item) drowns out the real boot log; silence it
     # until we wire BT firmware.
-    "modprobe.blacklist=msm,hci_uart,btqca"
+    "modprobe.blacklist=hci_uart,btqca"
     "panic=0"
     # - clk_ignore_unused / pd_ignore_unused: with msm blacklisted, NOTHING claims
     #   the MDSS display clocks/power-domains that lk2nd left running for the
