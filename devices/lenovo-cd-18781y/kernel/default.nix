@@ -50,22 +50,6 @@ mobile-nixos.kernel-builder {
     cp ${./patches/tas5805m.h} sound/soc/codecs/tas5805m.h
 
     dts=arch/arm64/boot/dts/qcom/apq8053-lenovo-cd-18781y.dts
-
-    # eMMC speed cap (2026-07-28): the device soft-bricked into 900E
-    # (Qualcomm CrashDump) at kernel stage with a byte-identical known-good
-    # boot.img — the classic Hynix eMMC high-speed degradation on this device
-    # family. Drop HS400/HS200/DDR52 and cap the clock at 50 MHz legacy mode;
-    # EDL-speed access always verified clean.
-    if grep -q "max-frequency" "$dts"; then
-      echo ":: eMMC speed cap already present in $dts"
-    else
-      echo ":: Injecting eMMC speed cap into $dts"
-      ${buildPackages.gnused}/bin/sed -i \
-        's|\(&sdhc_1 {\)|\1\n\t/delete-property/ mmc-hs400-1_8v;\n\t/delete-property/ mmc-hs200-1_8v;\n\t/delete-property/ mmc-ddr-1_8v;\n\tmax-frequency = <50000000>;|' \
-        "$dts"
-      grep -A 5 "\&sdhc_1 {" "$dts" | head -6
-    fi
-
     if grep -q "ramoops@" "$dts"; then
       echo ":: ramoops node already present in $dts"
     else
