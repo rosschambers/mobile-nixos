@@ -24,6 +24,22 @@ mobile-nixos.kernel-builder {
 
   isModular = true;
 
+  # Strip debug info from the installed .ko modules at modules_install time.
+  # The mobile-nixos kernel-builder sets `dontStrip = true`, so without this the
+  # 1217 modules ship unstripped: they weigh ~223 MB AND two of them
+  # (raid6_pq.ko, xor-neon.ko) retain the cross-gcc's store path in an ELF
+  # section, which drags the entire ~267 MB cross-compiler into the RUNTIME
+  # rootfs closure of a native-aarch64 appliance. On a rootfs that sits at 99%
+  # full that is intolerable. INSTALL_MOD_STRIP=1 is the kernel's own knob: it
+  # makes `modules_install` run `strip --strip-debug` on every .ko — removing
+  # only debug info while KEEPING .modinfo, vermagic, and the symbol/relocation
+  # tables the module loader needs, so the modules stay loadable. This is
+  # exactly what stock nixpkgs and Buildroot do; mobile-nixos is the outlier.
+  # Net effect: the gcc reference disappears (reclaims ~267 MB) and the module
+  # tree itself shrinks substantially. Independent of `dontStrip` (that governs
+  # nixpkgs' own fixup-phase strip; this governs the kernel's install-time strip).
+  makeFlags = [ "INSTALL_MOD_STRIP=1" ];
+
   # Inject a ramoops reserved-memory node into our device DTS so PSTORE_RAM has a
   # region to write the kernel console/oops to. Without this the ramoops region is
   # uninitialised (we read back only 0x55 fill from lk2nd's `oem ramoops raw`), so
